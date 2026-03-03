@@ -27,30 +27,34 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http
+        return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
 
-                        // 🔥 Admin endpoints
+                        // 🔥 Admin
+                        .requestMatchers("/api/products/image/**").permitAll()
+
+                        // 🔥 Restaurant secured endpoints
+                        .requestMatchers("/api/products/add").hasRole("RESTAURANT")
+                        .requestMatchers("/api/products/my-products").hasRole("RESTAURANT")
+
+                        // Admin
                         .requestMatchers("/api/restaurant/create").hasRole("ADMIN")
-                        .requestMatchers("/api/restaurant/all").permitAll()
                         .requestMatchers("/api/restaurant/status/**").hasRole("ADMIN")
 
-                        // 🔥 Restaurant endpoints (if any later)
-                        .requestMatchers("/api/restaurant/update/**").hasRole("RESTAURANT")
+                        // Public
+                        .requestMatchers("/api/restaurant/all").permitAll()
+
 
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
-
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
-
     // 🔹 CORS configuration
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
